@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrpt from "bcrypt";
+import bcrypt from "bcrypt";
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -25,9 +25,17 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const checkPassword = async function (password) {
-  
-  return await bcrpt.compare(password, this.password);
-}
+userSchema.methods.checkPassword = async function(password) {
+  try {
+    return await bcrypt.compare(password, this.password);
+  } catch (err) {
+    console.error('Password comparison error:', err);
+    throw err; }
+};
+
+userSchema.statics.hashPassword = async function (password) {
+  return await bcrypt.hash(password, 10);
+};
+
 const User = mongoose.model("User", userSchema);
 export default User; 

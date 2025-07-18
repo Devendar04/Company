@@ -1,6 +1,5 @@
 import User from "../models/User.models.js";
 import jwt from "jsonwebtoken";
-import { checkPassword } from "../models/User.models.js";
 
 const secret = process.env.JWT_SECRET;
 
@@ -17,15 +16,19 @@ const TokenGenerate = (user) => {
 
 export const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  const userId = req.User.id;
+  const userId = req.user.id;
 
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+password');
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const isMatch = checkPassword(oldPassword);
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Please provide both old and new passwords" });
+    }
+    const isMatch = await user.checkPassword(oldPassword);
+
     if (!isMatch) {
       return res.status(400).json({ message: "Old password is incorrect" });
     }
@@ -48,10 +51,11 @@ export const register = async (req, res) => {
     }
 
     const userExists = await User.findOne({ email });
+    const hashedPassword = await User.hashPassword(password);
     if (userExists) {
       return res.status(400).json({ message: "User is Already is Exits" });
     } else {
-      const newUser = await User.create({ username, email, password ,role});
+      const newUser = await User.create({ username, email, password: hashedPassword, role });
       return res.status(201).json({
         token: TokenGenerate(newUser),
         user: { id: newUser.id, email: newUser.email, role: newUser.role },
@@ -66,30 +70,35 @@ export const register = async (req, res) => {
 export const login = async (req,res) =>{
     try {
     const {email ,password} = req.body;
-    const userExists = await User.findOne({email})
+    const userExists = await User.findOne({email}).select("+password")
     if(!email || !password){
         res.status(400).json({message : "Fill the input field"})
     }
     if (!userExists) {
       return res.status(400).json({ message: "User is not found" });
     }
-    const Password = checkPassword(password)
+    const Password = await userExists.checkPassword(password)
     if (!Password) {
       res.status(400).json({ message: "Invalid password" });
     }
+    const token = TokenGenerate(userExists)
     res.status(200).json({
-      token: TokenGenerate(userExists),
+      token: token,
       user: {
         id: userExists.id,
         email: userExists.email,
         role: userExists.role,
         name: userExists.name,
       },
-    })
-    
-    
-}catch(err){
-        console.error(err);
+    });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure:false,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+  } catch (err) {
+
     return res.status(500).json({ message: "Internal server error" });
   }
 }
