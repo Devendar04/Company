@@ -42,6 +42,9 @@ export const updateTask = async (req, res) => {
     const { id } = req.params;
     const { title, description, assignedTo, status } = req.body;
     try {
+           if (!assignedTo || assignedTo.trim() === "") {
+            assignedTo = null; // or undefined, or don't include it at all
+        }
         const updatedTask = await task.findByIdAndUpdate(id, { title, description, assignedTo, status }, { new: true });
         if (!updatedTask) {
             return res.status(404).json({ message: 'Task not found' });
@@ -68,29 +71,31 @@ export const completedTask = async (req, res) => {
 }
 
 
-export const changeRole = async (req , res,Role)=>{
-    const {role}= req.body;
-    const { id } = req.params;
-    try {
-        const user = await User.findById(id);   
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        //admin>manager>teamlead>employee
-        const validRoles = ['admin', 'manager', 'teamlead', 'employee'];
-        const userRole = validRoles.indexOf(user.role); 
-        const changeRole = validRoles.indexOf(Role);
-        if (changeRole < userRole) {
-            return res.status(403).json({ message: 'Cannot change to a lower role' });
-        }
-       
-        user.role = Role;
-        await user.save();
-        res.status(200).json({ message: 'Role updated successfully', user });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Internal server error' });
+export const changeRole = async (req, res) => {
+  const { role } = req.body;
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id);   
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    
-}
+    const validRoles = ['admin', 'manager', 'teamlead', 'employee'];
+    const userRole = validRoles.indexOf(user.role); 
+    const targetRole = validRoles.indexOf(role);
+
+    if (targetRole < userRole) {
+      return res.status(403).json({ message: 'Cannot change to a lower role' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.status(200).json({ message: 'Role updated successfully', user });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

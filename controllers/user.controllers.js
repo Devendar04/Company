@@ -13,7 +13,15 @@ const TokenGenerate = (user) => {
   return jwt.sign(payload, secret, { expiresIn: "24h" });
 };
 
-
+export  const getAllusers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.status(200).json({ users });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
 export const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const userId = req.user.id;
@@ -45,6 +53,7 @@ export const changePassword = async (req, res) => {
 export const register = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
+    console.log(req.body);
 
     if (!username || !email || !password || !role) {
       res.status(400).json({ message: "Filled all input Fields !!" });
@@ -82,22 +91,20 @@ export const login = async (req,res) =>{
       res.status(400).json({ message: "Invalid password" });
     }
     const token = TokenGenerate(userExists)
-    res.status(200).json({
+    
+    return res.status(200).json({
       token: token,
       user: {
         id: userExists.id,
+        username: userExists.username,
         email: userExists.email,
         role: userExists.role,
         name: userExists.name,
       },
     });
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure:false,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
 
   } catch (err) {
+    console.error(err);
 
     return res.status(500).json({ message: "Internal server error" });
   }

@@ -1,5 +1,5 @@
 import express from "express";
-import { login, register ,changePassword } from "../controllers/user.controllers.js";
+import { login, register ,changePassword ,getAllusers} from "../controllers/user.controllers.js";
 import { protect, authorization } from "../middleware/userAuthMiddleware.js";
 import {
   getAllTasks,
@@ -17,6 +17,7 @@ router.post("/login", login);
 router.get("/myProfile", protect, (req, res) => {
   res.status(200).json({ data: req.user });
 });
+router.get("/getAllusers", protect, authorization("admin"), getAllusers);
 
 router.put("/changePassword", protect, changePassword);
 router.get("/getAllTasks", protect, getAllTasks);

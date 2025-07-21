@@ -14,7 +14,6 @@ export const protect=async(req,res,next)=>{
     next()
 }
 export const authorization=(...roles)=>(req,res,next)=>{
-    console.log(roles)
     if(!roles.includes(req.user.role)){
         res.status(403).json({message:"authorization failed : not have permission to access"})
     }else{
